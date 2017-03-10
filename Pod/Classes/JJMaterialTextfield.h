@@ -25,6 +25,10 @@
  */
 @property (nonatomic, strong, nullable) UIColor *lineColor;
 
+@property (nonatomic, strong) UIColor *placeHolderUpColor;
+@property (nonatomic, strong) UIColor *placeHolderDownColor;
+@property (nonatomic, strong) UIColor *placeHolderErrorColor;
+@property (nonatomic, strong) UIFont *placeHolderFont;
 
 /**
  *  Shows an error - makes the line the error color.

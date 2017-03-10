@@ -13,11 +13,12 @@
     UIView *line;
     UILabel *placeHolderLabel;
     BOOL showError;
+    CGAffineTransform placeHolderInitialTransform;
 }
 @end
 
 @implementation JJMaterialTextfield
-@synthesize errorColor;
+@synthesize errorColor,lineColor;
 
 #define DEFAULT_ALPHA_LINE 0.8
 
@@ -39,13 +40,13 @@
 
 - (void)commonInit
 {
-    _lineColor = [UIColor lightGrayColor];
+    lineColor = [UIColor lightGrayColor];
     errorColor = [UIColor colorWithRed:0.910 green:0.329 blue:0.271 alpha:1.000]; // FLAT RED COLOR
     line = [[UIView alloc] init];
-    line.backgroundColor = [_lineColor colorWithAlphaComponent:DEFAULT_ALPHA_LINE];
+    line.backgroundColor = [lineColor colorWithAlphaComponent:DEFAULT_ALPHA_LINE];
     [self addSubview:line];
     self.clipsToBounds = NO;
-    [self setEnableMaterialPlaceHolder:YES];
+    [self setEnableMaterialPlaceHolder:self.enableMaterialPlaceHolder];
     [self addTarget:self action:@selector(textFieldDidChange:) forControlEvents:UIControlEventEditingChanged];
     
 }
@@ -56,12 +57,6 @@
     [self textFieldDidChange:self];
 }
 
-- (void)setLineColor:(UIColor *)lineColor
-{
-    _lineColor = lineColor;
-    line.backgroundColor = _lineColor;
-}
-
 - (IBAction)textFieldDidChange:(id)sender
 {
     if (self.enableMaterialPlaceHolder) {
@@ -70,6 +65,9 @@
             placeHolderLabel.alpha = 1;
             self.attributedPlaceholder = nil;
         }
+        //        else {
+        //            self.attributedPlaceholder = nil;
+        //        }
         
         CGFloat duration = 0.5;
         CGFloat delay = 0;
@@ -81,19 +79,21 @@
              usingSpringWithDamping:damping
               initialSpringVelocity:velocity
                             options:UIViewAnimationOptionCurveEaseInOut animations:^{
-
+                                
                                 if (!self.text || self.text.length <= 0) {
-                                    placeHolderLabel.transform = CGAffineTransformIdentity;
+                                    placeHolderLabel.transform = CGAffineTransformTranslate(CGAffineTransformIdentity, 0, -(CGRectGetHeight(self.frame) - 12));
+                                    placeHolderLabel.textColor = self.placeHolderDownColor;
                                 }
                                 else {
-                                    placeHolderLabel.transform = CGAffineTransformMakeTranslation(0, -placeHolderLabel.frame.size.height - 5);
+                                    placeHolderLabel.transform = CGAffineTransformMakeTranslation(0, - CGRectGetHeight(self.frame) - CGRectGetHeight(placeHolderLabel.frame) / 2.f);
+                                    placeHolderLabel.textColor = self.placeHolderUpColor;
                                 }
                                 
                             }
                          completion:^(BOOL finished) {
                              
                          }];
-       
+        
     }
 }
 
@@ -115,7 +115,7 @@
                              line.backgroundColor=errorColor;
                          }
                          else {
-                             line.backgroundColor=self.lineColor;
+                             line.backgroundColor=lineColor;
                          }
                          
                      }
@@ -139,9 +139,9 @@
                              line.backgroundColor = errorColor;
                          }
                          else {
-                             line.backgroundColor = [self.lineColor colorWithAlphaComponent:DEFAULT_ALPHA_LINE];
+                             line.backgroundColor = [lineColor colorWithAlphaComponent:DEFAULT_ALPHA_LINE];
                          }
-
+                         
                          
                      }
                      completion:^(BOOL finished) {
@@ -149,8 +149,24 @@
                              //finalizacion
                          }
                      }];
+    
+}
 
-  }
+- (void)setPlaceHolderFont:(UIFont *)placeHolderFont {
+    _placeHolderFont = placeHolderFont;
+    placeHolderLabel.font = _placeHolderFont;
+    [placeHolderLabel sizeToFit];
+}
+
+-(void)setPlaceHolderUpColor:(UIColor *)placeHolderUpColor {
+    _placeHolderUpColor = placeHolderUpColor;
+    placeHolderLabel.textColor = _placeHolderUpColor;
+}
+
+-(void)setPlaceHolderDownColor:(UIColor *)placeHolderDownColor {
+    _placeHolderDownColor = placeHolderDownColor;
+    placeHolderLabel.textColor = _placeHolderDownColor;
+}
 
 - (void)setPlaceholderAttributes:(NSDictionary *)placeholderAttributes
 {
@@ -166,7 +182,7 @@
                            NSFontAttributeName : [self.font fontWithSize: self.font.pointSize]};
     
     self.attributedPlaceholder = [[NSAttributedString alloc] initWithString:placeholder ?: @"" attributes: self.placeholderAttributes ?: atts];
-
+    
     [self setEnableMaterialPlaceHolder:self.enableMaterialPlaceHolder];
 }
 
@@ -175,10 +191,11 @@
     _enableMaterialPlaceHolder = enableMaterialPlaceHolder;
     
     if (!placeHolderLabel) {
-        placeHolderLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 6, 0, self.frame.size.height)];
+        placeHolderLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, CGRectGetHeight(self.frame) - CGRectGetHeight(placeHolderLabel.frame) * 1.5, 0, self.frame.size.height)];
         [self addSubview:placeHolderLabel];
+        placeHolderInitialTransform = placeHolderLabel.transform;
     }
-    placeHolderLabel.alpha = _enableMaterialPlaceHolder ? placeHolderLabel.alpha : 0;
+    placeHolderLabel.alpha = 0;
     placeHolderLabel.attributedText = self.attributedPlaceholder;
     [placeHolderLabel sizeToFit];
     
@@ -196,7 +213,7 @@
 - (BOOL)resignFirstResponder
 {
     BOOL returnValue = [super resignFirstResponder];
-   
+    
     [self unhighlight];
     
     return returnValue;
@@ -206,12 +223,14 @@
 {
     showError = YES;
     line.backgroundColor = errorColor;
+    placeHolderLabel.textColor = self.placeHolderErrorColor;
 }
 
 - (void)hideError
 {
     showError = NO;
-    line.backgroundColor = self.lineColor;
+    line.backgroundColor = lineColor;
+    placeHolderLabel.textColor = self.placeHolderDownColor;
 }
 
 - (void)layoutSubviews
